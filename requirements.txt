@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-docx
+Pillow
+pytesseract
+lxml
+regex
+opencv-python
+pypandoc
