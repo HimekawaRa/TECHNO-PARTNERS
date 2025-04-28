@@ -72,6 +72,12 @@ CRITICAL:
 - Preserve all LaTeX math exactly as in the Markdown input.
 - Use "options" as an object mapping labels ("A","B", etc.) to their corresponding choice text.
 - If a field is missing, set it to an empty string, empty object, or zero as appropriate.
+--**In the explanation field, always use \\n for every original line break (each new line in the original explanation). Do not join all sentences into one line.**
+
+# Additional instructions:
+- Do NOT change minus, dash, or hyphen characters to double hyphens (`--`). Restore mathematical expressions to their most natural LaTeX or Unicode representation if necessary.
+- If you see `^` used for powers, prefer `x^2` as LaTeX: `x^2` or in math mode `x^{2}`.
+- Never use `--` or `- -` for minuses or dashes.
 
 Here is the exact JSON schema example for one question:
 
@@ -98,7 +104,7 @@ Here is the exact JSON schema example for one question:
       "quarter": 4,
       "language": "русский",
       "task_form": "выбор одного правильного из четырех предложенных вариантов ответов",
-      "explanation": "\\[f(x) = x + \\tfrac{1}{x}\\]; \\[f'(x) = 1 - \\tfrac{1}{x^2}\\]; \\[f'(x)=0 → x=±1, x≠0\\]. При \\(x∈[-1;0)∪(0;1]\\) функция убывает.",
+      "explanation": "f(x) = x^3 - 12x + 1\nf'(x) = 3x^2 - 12\nf'(x) = 0\n3x^2 - 12 = 0\nx ± 2\nf(-3) = 10\nf(-2) = 17\nf(2) = -15\nf(3) = 8\nу~наим~ = f(2) = -15"
       "textbook": "Алгебра и начала анализа. Абылкасымова А.Е., Часть 2, §47, стр. 97",
       "goal": "10.4.1.26- Знать необходимое и достаточное условие убывания функции; 10.4.1.27- Находить интервалы убывания",
       "points": 1,
@@ -139,7 +145,7 @@ def convert_to_markdown_with_latex(path: str, fmt: str) -> str:
 # -----------------------
 # Endpoint
 # -----------------------
-@app.post("/parse-json", response_model=JSONResponseModel)
+@app.post("/parse-json")
 async def parse_document(file: UploadFile = File(..., description="Upload a .docx or .html file")):
     suffix = Path(file.filename).suffix.lower()
     if suffix not in {".docx", ".html", ".htm"}:
@@ -206,7 +212,7 @@ async def parse_document(file: UploadFile = File(..., description="Upload a .doc
             else:
                 raise HTTPException(status_code=502, detail="Invalid JSON from AI and no JSON delimiters found")
 
-        return {"parsed": parsed_dict}
+        return  parsed_dict
 
     except RuntimeError as e:
         logger.error("Processing error: %s", e)
