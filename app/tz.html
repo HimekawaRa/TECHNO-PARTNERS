@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Просмотр Заданий</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Задание</h1>
+    <div id="question" class="mb-4 text-lg"></div>
+
+    <div class="mb-4">
+      <h2 class="font-semibold mb-2">Варианты ответов:</h2>
+      <ul id="options" class="list-disc pl-6 space-y-1"></ul>
+    </div>
+
+    <div class="mb-4">
+      <h2 class="font-semibold">Объяснение:</h2>
+      <div id="explanation" class="whitespace-pre-wrap bg-gray-100 p-2 rounded mt-1"></div>
+    </div>
+
+    <div class="text-sm text-gray-600 space-y-1">
+      <p><strong>Ответ:</strong> <span id="correct-answer"></span></p>
+      <p><strong>Сложность:</strong> <span id="difficulty"></span></p>
+      <p><strong>Раздел:</strong> <span id="section"></span></p>
+      <p><strong>Тема:</strong> <span id="topic"></span></p>
+    </div>
+
+    <div class="flex justify-between mt-6">
+      <button id="prevBtn" class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">Назад</button>
+      <button id="nextBtn" class="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50">Вперёд</button>
+    </div>
+  </div>
+
+  <script>
+    let questions = [];
+    let currentIndex = 0;
+
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const explanationEl = document.getElementById('explanation');
+    const correctAnswerEl = document.getElementById('correct-answer');
+    const difficultyEl = document.getElementById('difficulty');
+    const sectionEl = document.getElementById('section');
+    const topicEl = document.getElementById('topic');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function renderQuestion(index) {
+      const q = questions[index];
+
+      questionEl.innerHTML = q.question;
+      explanationEl.innerHTML = q.explanation;
+      correctAnswerEl.textContent = q.correct_answer;
+      difficultyEl.textContent = q.difficulty_level;
+      sectionEl.textContent = q.section?.name || '';
+      topicEl.textContent = q.topic?.name || '';
+
+      optionsEl.innerHTML = '';
+      for (const [key, value] of Object.entries(q.options)) {
+        const li = document.createElement('li');
+        li.textContent = `${key}: ${value}`;
+        optionsEl.appendChild(li);
+      }
+
+      MathJax.typeset(); // отрисовать формулы
+
+      // обновляем кнопки
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === questions.length - 1;
+    }
+
+    fetch('data.json')
+      .then(res => res.json())
+      .then(data => {
+        questions = data.questions;
+        if (questions.length > 0) {
+          renderQuestion(currentIndex);
+        }
+      });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion(currentIndex);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < questions.length - 1) {
+        currentIndex++;
+        renderQuestion(currentIndex);
+      }
+    });
+  </script>
+</body>
+</html>
