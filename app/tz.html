@@ -43,29 +43,186 @@
     </div>
   </div>
 
+  <!-- Ваш JSON прямо в HTML -->
+  <script id="data" type="application/json">
+  {
+  "questions": [
+    {
+      "question": "Задана функция \\(f(x) = \\frac{x}{x^{2} - 1}\\). Укажите промежутки убывания данной функции.",
+      "options": {
+        "A": "[ –1; 0)(0; 1];",
+        "B": "[ –1; 1];",
+        "C": "( –∞;  –1] [1; +∞);",
+        "D": "( –∞; 0)(0; +∞)."
+      },
+      "explanation": " \\(f'(x) = \\frac{(x^{2} - 1) - x(2x)}{(x^{2} - 1)^{2}} = \\frac{-x^{2} - 1}{(x^{2} - 1)^{2}}\\) ;\n\\(f'(x) < 0\\) при \\(x \\in (-∞; +∞)\\), \\(x ≠ ±1\\);\n\\(f'(x) < 0\\) при \\(x \\in [ –1; 0)(0; 1]\\).Т.к. функция определена  при \\(x=-1\\) и \\(x=1\\), то эти значения \\(x\\) включены в промежутки убывания.",
+      "correct_answer": "A|[ –1; 0)(0; 1]]",
+      "difficulty_level": "A –",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 216,
+        "name": "Критические точки и точки экстремума функции."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "10 ЕМН",
+      "score": 1
+    },
+    {
+      "question": "Найдите наименьшее значение функции \\(f(x) = x^{3} – 12x + 1\\) на промежутке [-3; 3]",
+      "options": {
+        "A": "унаим = - 15;",
+        "B": "унаим = - 8;",
+        "C": "унаим = 10;",
+        "D": "унаим = 17."
+      },
+      "explanation": "\\(f(x) = x^{3} – 12x + 1\\)\n\\(f '(x) = 3x^{2} – 12\\)\n\\(f '(x) = 0\\)\n\\(3x^{2} – 12 = 0\\)\n\\(x ± 2\\)\n\\(f(-3) = 10\\)\n\\(f(-2) = 17\\)\n\\(f(2) = -15\\)\n\\(f(3) = 8\\)\nунаим = \\(f(2) = - 15\\)",
+      "correct_answer": "A|[унаим = - 15]",
+      "difficulty_level": "A",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 219,
+        "name": "Наибольшее и наименьшее значение функции на отрезке."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "10 ЕМН",
+      "score": 1
+    },
+    {
+      "question": "Найдите наибольшее значение функции \\(f(x) = x^{3} – 12x + 1\\) на промежутке [-3; 3]",
+      "options": {
+        "A": "унаиб = - 15;",
+        "B": "унаиб = - 8;",
+        "C": "унаиб = 10;",
+        "D": "унаиб = 17."
+      },
+      "explanation": "\\(f(x) = x^{3} – 12x + 1\\)\n\\(f '(x) = 3x^{2} – 12\\)\n\\(f '(x) = 0\\)\n\\(3x^{2} – 12 = 0\\)\n\\(x ± 2\\)\n\\(f(-3) = 10\\)\n\\(f(-2) = 17\\)\n\\(f(2) = -15\\)\n\\(f(3) = 8\\)\nунаиб = \\(f(-2) = 17\\)",
+      "correct_answer": "D|[унаиб = 17]",
+      "difficulty_level": "A",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 219,
+        "name": "Наибольшее и наименьшее значение функции на отрезке."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "10 ЕМН",
+      "score": 1
+    },
+    {
+      "question": "Определите точки перегиба функций \\(f(x)=  x^{4} – 4x^{3} – 18x^{2} – 2x + 7\\)",
+      "options": {
+        "A": "x = -3;",
+        "B": "x = -1;",
+        "C": "x = 0;",
+        "D": "x = 1",
+        "E": "x = 2;",
+        "F": "x = 3."
+      },
+      "explanation": "\\(f(x)=  x^{4} – 4x^{3} – 18x^{2} – 2x + 7\\)\n\\(f '(x)=  4x^{3} – 12x^{2} – 36x – 2\\)\n\\(f ''(x)=  12x^{2} – 24x – 36\\)\n\\(f ''(x) =  0\\)\n\\(12x^{2} – 24x – 36 =  0\\)\n\\(x = -1, x = 3\\)",
+      "correct_answer": "B|[x = -1], F|[x = 3].",
+      "difficulty_level": "A",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 217,
+        "name": "Точки перегиба функции, выпуклость, вогнутость графика функции."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "11 ЕМН",
+      "score": 2
+    },
+    {
+      "question": "Поставьте в соответствие функцию и ее точку максимума",
+      "options": {},
+      "explanation": "1. \\(f(x) = x^{3} – 12x + 1;\\)\n\\(f '(x) = 3x^{2} – 12\\)\n\\(f '(x) = 0\\)\n\\(3x^{2} – 12 = 0\\)\n\\(x = ± 2\\)\n\\(f '(x) > 0\\) при \\(x (-∞; - 2][2; +∞)\\), \\(f '(x) < 0\\) при \\(x [- 2; 2]\\), значит \\(xmax = -2.\\)\n2. \\(f(x) = – x^{2} – 6x + 1\\)\n\\(f '(x) = – 2x – 6\\)\n\\(f '(x) = 0\\)\n– \\(2x – 6= 0\\)\n\\(x = – 3\\)\n\\(f '(x) > 0\\) при \\(x (-∞; - 3]\\), \\(f '(x) < 0\\) при \\(x  [-3; +∞)\\), значит \\(xmax = -3.\\)\n3. \\(f(x) = 2x^{3} – 6x + 1;\\)\n\\(f '(x) = 6x^{2} – 6\\)\n\\(f '(x) = 0\\)\n\\(x^{2} – 1 = 0\\)\n\\(x = ± 1\\)\n\\(f '(x) > 0\\) при \\(x (-∞; - 1][1; +∞)\\), \\(f '(x) < 0\\) при \\(x [- 1; 1]\\), значит \\(xmax = -1.\\)\n4. \\(f(x) = 7 + 6x – x^{2}\\)\n\\(f '(x) = – 2x + 6\\)\n\\(f '(x) = 0\\)\n– \\(2x + 6= 0\\)\n\\(x =  3\\)\n\\(f '(x) > 0\\) при \\(x (-∞; 3]\\), \\(f '(x) < 0\\) при \\(x  [3; +∞)\\), значит \\(xmax = 3.\\)\n5. \\(f(x) = 7 + 32x – x^{4},\\)\n\\(f '(x) = – 4x^{3} + 32\\)\n\\(f '(x) = 0\\)\n– \\(4x^{3} + 32= 0\\)\n\\(x = 2\\)\n\\(f '(x) > 0\\) при \\(x (-∞; 2]\\), \\(f '(x) < 0\\) при \\(x  [2; +∞)\\), значит \\(xmax = 2.\\)",
+      "correct_answer": "1-C|[xmax = -2], 2-A|[xmax = -3.], 3-D|[xmax = -1], 4-B|[ max = 3], 5-E |[ xmax = 2.]",
+      "difficulty_level": "B",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 216,
+        "name": "Критические точки и точки экстремума функции."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "11 ЕМН",
+      "score": 5
+    },
+    {
+      "question": "Поставьте в соответствие функцию и ее точку минимума",
+      "options": {},
+      "explanation": "1. \\(f(x) = x^{3} – 12x + 1;\\)\n\\(f '(x) = 3x^{2} – 12\\)\n\\(f '(x) = 0\\)\n\\(3x^{2} – 12 = 0\\)\n\\(x = ± 2\\)\n\\(f '(x) > 0\\) при \\(x (-∞; - 2][2; +∞)\\), \\(f '(x) < 0\\) при \\(x [- 2; 2]\\), значит \\(xmin = 2.\\)\n2. \\(f(x) =  x^{2} – 6x + 1\\)\n\\(f '(x) =  2x – 6\\)\n\\(f '(x) = 0\\)\n \\(2x – 6= 0\\)\n\\(x =  3\\)\n\\(f '(x) > 0\\) при \\(x ( -∞; 3]\\), \\(f '(x) < 0\\) при \\(x  [3; +∞)\\), значит \\(xmin = 3.\\)\n3. \\(f(x) = 2x^{3} – 6x + 1;\\)\n\\(f '(x) = 6x^{2} – 6\\)\n\\(f '(x) = 0\\)\n\\(x^{2} – 1 = 0\\)\n\\(x = ± 1\\)\n\\(f '(x) > 0\\) при \\(x (-∞; - 1][1; +∞)\\), \\(f '(x) < 0\\) при \\(x [- 1; 1]\\), значит \\(xmin = 1.\\)\n4. \\(f(x) = 7 + 6x + x^{2}\\)\n\\(f '(x) =  2x + 6\\)\n\\(f '(x) = 0\\)\n\\(2x + 6= 0\\)\n\\(x =  – 3\\)\n\\(f '(x) > 0\\) при \\(x (-∞; – 3]\\), \\(f '(x) < 0\\) при \\(x  [– 3; +∞)\\), значит \\(xmin = – 3.\\)\n5. \\(f(x) = 7 – 32x – x^{4},\\)\n\\(f '(x) = – 4x^{3} – 32\\)\n\\(f '(x) = 0\\)\n– \\(4x^{3} – 32= 0\\)\n\\(x = –2\\)\n\\(f '(x) > 0\\) при \\(x (-∞; –2]\\), \\(f '(x) < 0\\) при \\(x  [–2; +∞)\\), значит \\(xmax = –2.\\)",
+      "correct_answer": "1- E |[ xmax = 2.], 2- B|[ xmax = 3], 3-D|[xmax = 1], 4- A|[xmax = -3.], 5- C|[xmax = -2].",
+      "difficulty_level": "B",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 216,
+        "name": "Критические точки и точки экстремума функции."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "11 ЕМН",
+      "score": 2
+    },
+    {
+      "question": "Заполните пропуски в решении задачи на оптимизацию.\nНайдите такое число, сумма которого со своим квадратом даёт наименьшее значение.",
+      "options": {},
+      "explanation": "Оптимизируемая величина – сумма числа и его квадрата. Обозначим ее  у.\nБудем искать наименьшее значение  этой суммы.\nЗа x примем данное число, тогда  – второе слагаемое.\nТогда y=x+x^2.\nНайдем минимум функции на интервале (-∞;+∞)\ny'=1+2x\n2x+1=0\nx=-0,5\nДанная точка является точкой минимума и в данной точке значение функции  наименьшее. \nОтвет: Искомое число -0,5.",
+      "correct_answer": "# (-∞;+∞ # -0,5 # минимума # -0,25",
+      "difficulty_level": "C",
+      "section": {
+        "id": 11,
+        "name": "Применение производной"
+      },
+      "topic": {
+        "id": 218,
+        "name": "Исследование функции с помощью производной."
+      },
+      "subject": "Алгебра и начала анализа",
+      "class_": "10 ЕМН",
+      "score": 5
+    }
+  ]
+}
+
+  </script>
+
   <script>
     let questions = [];
     let currentIndex = 0;
 
-    const questionEl = document.getElementById('question');
-    const optionsEl = document.getElementById('options');
-    const explanationEl = document.getElementById('explanation');
+    const questionEl      = document.getElementById('question');
+    const optionsEl       = document.getElementById('options');
+    const explanationEl   = document.getElementById('explanation');
     const correctAnswerEl = document.getElementById('correct-answer');
-    const difficultyEl = document.getElementById('difficulty');
-    const sectionEl = document.getElementById('section');
-    const topicEl = document.getElementById('topic');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
+    const difficultyEl    = document.getElementById('difficulty');
+    const sectionEl       = document.getElementById('section');
+    const topicEl         = document.getElementById('topic');
+    const prevBtn         = document.getElementById('prevBtn');
+    const nextBtn         = document.getElementById('nextBtn');
 
     function renderQuestion(index) {
       const q = questions[index];
 
-      questionEl.innerHTML = q.question;
-      explanationEl.innerHTML = q.explanation;
+      questionEl.innerHTML      = q.question;
+      explanationEl.innerHTML    = q.explanation || '';
       correctAnswerEl.textContent = q.correct_answer;
-      difficultyEl.textContent = q.difficulty_level;
-      sectionEl.textContent = q.section?.name || '';
-      topicEl.textContent = q.topic?.name || '';
+      difficultyEl.textContent    = q.difficulty_level;
+      sectionEl.textContent       = q.section?.name || '';
+      topicEl.textContent         = q.topic?.name || '';
 
       optionsEl.innerHTML = '';
       for (const [key, value] of Object.entries(q.options)) {
@@ -74,21 +231,16 @@
         optionsEl.appendChild(li);
       }
 
-      MathJax.typeset(); // отрисовать формулы
+      MathJax.typeset(); // прорисовать формулы
 
-      // обновляем кнопки
       prevBtn.disabled = index === 0;
       nextBtn.disabled = index === questions.length - 1;
     }
 
-    fetch('data.json')
-      .then(res => res.json())
-      .then(data => {
-        questions = data.questions;
-        if (questions.length > 0) {
-          renderQuestion(currentIndex);
-        }
-      });
+    // вместо fetch берём данные из встроенного скрипта
+    const data = JSON.parse(document.getElementById('data').textContent);
+    questions = data.questions;
+    if (questions.length > 0) renderQuestion(currentIndex);
 
     prevBtn.addEventListener('click', () => {
       if (currentIndex > 0) {
@@ -96,7 +248,6 @@
         renderQuestion(currentIndex);
       }
     });
-
     nextBtn.addEventListener('click', () => {
       if (currentIndex < questions.length - 1) {
         currentIndex++;
