@@ -80,12 +80,23 @@ Additional instructions:
 - Do NOT invent or modify formulas; copy all math content exactly as in the input.
 - Do NOT output Markdown code blocks (no ```json).
 - Your output must be directly parseable as JSON.
+- All formulas that starts from $ should end by $.
 - Tables or structured input like:
     ```
     xi: 1  2  3
     pi: 0.1 0.2 0.3
     ```
-  — must be converted into math mode e.g. referenced via $M[X] = x_1 p_1 + x_2 p_2 + ...$
+— must be converted into math mode e.g. referenced via $M[X] = x_1 p_1 + x_2 p_2 + ...$
+
+IMPORTANT:
+- Every LaTeX formula must always be enclosed with matching delimiters:
+  - Either use `$...$` for inline math, or `\\(...\\)` — but never mix them within one formula.
+  - Never leave a formula with only one `$` or only one `\\(` — it must be closed.
+- For example, this is VALID: `$f(x) = x^2 + 2x + 1$` or `\\(a_n = \\frac{1}{n}\\)`.
+- This is INVALID: `$f(x) = x^2 + 2x + 1`, `\\(a_n = \\frac{1}{n}$`, or raw formula without any math delimiters.
+- If you see a mathematical equation or expression, always wrap it entirely in a single pair of `$...$`. NEVER forget the closing `$`.
+- NEVER output an incomplete LaTeX expression or leave math expressions outside of math mode.
+
 Example (for one question):
 
 {
@@ -149,6 +160,16 @@ def convert_to_markdown_with_latex(path: str, fmt: str) -> str:
         logger.exception("Pandoc conversion failed")
         raise RuntimeError(f"Pandoc conversion error: {e}")
     return md.replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "")
+
+def replace_double_dashes(obj):
+    if isinstance(obj, dict):
+        return {k: replace_double_dashes(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_double_dashes(v) for v in obj]
+    elif isinstance(obj, str):
+        return obj.replace("--", "-")
+    else:
+        return obj
 
 # -----------------------
 # Endpoint
@@ -220,7 +241,7 @@ async def parse_document(file: UploadFile = File(..., description="Upload a .doc
             else:
                 raise HTTPException(status_code=502, detail="Invalid JSON from AI and no JSON delimiters found")
 
-        return  parsed_dict
+        return replace_double_dashes(parsed_dict)
 
     except RuntimeError as e:
         logger.error("Processing error: %s", e)
