@@ -76,11 +76,16 @@ CRITICAL:
 
 Additional instructions:
 - Never change minus, dash, or hyphen characters to double hyphens (`--`). Keep single minuses for subtraction or negative numbers.
-- If you see any mathematical formula, expression, or a variable with an exponent (such as x^2, a_n, sin(x), \frac{1}{x}, etc.), you MUST always wrap the entire formula in LaTeX math mode using dollar signs ($...$). For example, x^2 should be written as $x^2$, and x^3 - 12x + 1 as $x^3 - 12x + 1$. This applies to ALL fields in the JSON: question, options, explanation, etc. Never output a math formula as plain text without $...$.
+- If you see any mathematical formula, expression, or a variable with an exponent (such as x^2, a_n, sin(x), \frac{1}{x}, $M[X] = x_1 p_1 + x_2 p_2 + ...$ etc.), you MUST always wrap the entire formula in LaTeX math mode using dollar signs ($...$). For example, x^2 should be written as $x^2$, and x^3 - 12x + 1 as $x^3 - 12x + 1$. This applies to ALL fields in the JSON: question, options, explanation, etc. Never output a math formula as plain text without $...$.
 - Do NOT invent or modify formulas; copy all math content exactly as in the input.
 - Do NOT output Markdown code blocks (no ```json).
 - Your output must be directly parseable as JSON.
-
+- Tables or structured input like:
+    ```
+    xi: 1  2  3
+    pi: 0.1 0.2 0.3
+    ```
+  — must be converted into math mode e.g. referenced via $M[X] = x_1 p_1 + x_2 p_2 + ...$
 Example (for one question):
 
 {
