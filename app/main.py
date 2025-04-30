@@ -4,12 +4,13 @@ import tempfile
 import logging
 import json
 from pathlib import Path
+from typing import Union, List, Dict
 
 import pypandoc
 import openai
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 from dotenv import load_dotenv
 
 # -----------------------
@@ -28,14 +29,84 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(m
 logger = logging.getLogger(__name__)
 
 # -----------------------
-# Pydantic response model
+# Pydantic Models
 # -----------------------
-class JSONResponseModel(BaseModel):
-    parsed: dict
+class Section(BaseModel):
+    id: int
+    name: str
+
+class Topic(BaseModel):
+    id: int
+    name: str
+
+class Question(BaseModel):
+    question: str
+    options: Dict[str, str]
+    section: Section
+    topic: Topic
+    subject: str
+    class_: str = Field(..., alias="class")
+    quarter: int
+    language: str
+    task_form: str
+    explanation: str
+    textbook: str
+    goal: str
+    points: int
+    correct_answer: Union[str, List[str], Dict[str, str]]
+    level: str
+    direction: str
+
+class ParsedData(BaseModel):
+    questions: List[Question]
 
 # -----------------------
-# System prompt
+# Helper functions
 # -----------------------
+def convert_to_markdown_with_latex(path: str, fmt: str) -> str:
+    if not shutil.which("pandoc"):
+        raise RuntimeError("Pandoc not found in PATH.")
+    try:
+        md = pypandoc.convert_file(
+            path,
+            to="markdown+tex_math_dollars",
+            format=fmt,
+            extra_args=["--wrap=none", "--strip-comments"]
+        )
+    except Exception as e:
+        logger.exception("Pandoc conversion failed")
+        raise RuntimeError(f"Pandoc conversion error: {e}")
+    return md.replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "")
+
+def replace_double_dashes(obj):
+    if isinstance(obj, dict):
+        return {k: replace_double_dashes(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_double_dashes(v) for v in obj]
+    elif isinstance(obj, str):
+        return obj.replace("--", "-")
+    return obj
+
+def count_dollars(text):
+    return text.count("$")
+
+def has_unclosed_dollar(data):
+    if isinstance(data, dict):
+        return any(has_unclosed_dollar(v) for v in data.values())
+    elif isinstance(data, list):
+        return any(has_unclosed_dollar(item) for item in data)
+    elif isinstance(data, str):
+        return count_dollars(text=data) % 2 != 0
+    return False
+
+# -----------------------
+# FastAPI app
+# -----------------------
+app = FastAPI(
+    title="DOCX/HTML → Markdown+LaTeX → GPT JSON Parser",
+    description="Uploads a .docx or .html, converts via pandoc to markdown with LaTeX math, then calls OpenAI to extract structured JSON."
+)
+
 SYSTEM_PROMPT = """
 You are an assistant that receives a Markdown document containing text and LaTeX math (delimited by $...$ or \\(...\\)),
 and you must output a single JSON object (no extra text) following this schema:
@@ -75,7 +146,7 @@ CRITICAL:
 - The explanation field is not only math — it must include regular textual content such as textbook references, descriptive sentences, etc., exactly as in the original.
 - The "options" field must be an **object** with option labels ("A", "B", etc.) as keys, and the answer text as values.
 - If a field is missing, set it to an empty string, empty object, or zero as appropriate.
-
+- If you see a mathematical equation or expression, always wrap it entirely in a single pair of `$...$`. NEVER forget the closing `$`.
 Additional instructions:
 - Never change minus, dash, or hyphen characters to double hyphens (`--`). Keep single minuses for subtraction or negative numbers.
 - If you see any mathematical formula, expression, or a variable with an exponent (such as x^2, a_n, sin(x), \frac{1}{x}, $M[X] = x_1 p_1 + x_2 p_2 + ...$ etc.), you MUST always wrap the entire formula in LaTeX math mode using dollar signs ($...$). For example, x^2 should be written as $x^2$, and x^3 - 12x + 1 as $x^3 - 12x + 1$. This applies to ALL fields in the JSON: question, options, explanation, etc. Never output a math formula as plain text without $...$.
@@ -83,12 +154,9 @@ Additional instructions:
 - Do NOT output Markdown code blocks (no ```json).
 - Your output must be directly parseable as JSON.
 - All formulas that starts from $ should end by $.
-- Tables or structured input like:
-    ```
-    xi: 1  2  3
-    pi: 0.1 0.2 0.3
-    ```
-— must be converted into math mode e.g. referenced via $M[X] = x_1 p_1 + x_2 p_2 + ...$
+- At the end of each field (question, explanation, options, etc.), automatically ensure that:
+  - If there is an unclosed LaTeX math expression starting with `$`, it MUST be closed with a matching `$`.
+  - If a `$`-delimited expression is opened and not closed, append a closing `$` at the correct position before any non-math content starts (like textbook references or punctuation).
 
 IMPORTANT:
 - Every LaTeX formula must always be enclosed with matching delimiters:
@@ -98,6 +166,9 @@ IMPORTANT:
 - This is INVALID: `$f(x) = x^2 + 2x + 1`, `\\(a_n = \\frac{1}{n}$`, or raw formula without any math delimiters.
 - If you see a mathematical equation or expression, always wrap it entirely in a single pair of `$...$`. NEVER forget the closing `$`.
 - NEVER output an incomplete LaTeX expression or leave math expressions outside of math mode.
+- Any mathematical equation (even long ones like expectations, probability formulas, or expressions with ⋅, +, -, =, fractions, variables like x_1, p_1, etc.) MUST be fully enclosed in $...$ — even if they span multiple terms.
+- Example: M[X] = x_1 p_1 + x_2 p_2 + ... = 3.4 MUST be converted into $M[X] = x_1 p_1 + x_2 p_2 + x_3 p_3 + x_4 p_4 + x_5 p_5 = 1\\cdot0.1 + 2\\cdot0.2 + 3\\cdot0.1 + 4\\cdot0.4 + 5\\cdot0.2 = 0.1 + 0.4 + 0.3 + 1.6 + 1 = 3.4$
+- NEVER leave such formulas outside of LaTeX math mode. The entire equation — from M[X] = ... to the result — must be enclosed in a single pair of dollar signs $...$.
 
 Example (for one question):
 
@@ -136,133 +207,55 @@ Example (for one question):
 }
 """
 
-
-# -----------------------
-# FastAPI app
-# -----------------------
-app = FastAPI(
-    title="DOCX/HTML → Markdown+LaTeX → GPT JSON Parser",
-    description="Uploads a .docx or .html, converts via pandoc to markdown with LaTeX math, then calls OpenAI to extract structured JSON."
-)
-
-# -----------------------
-# Conversion helper
-# -----------------------
-def convert_to_markdown_with_latex(path: str, fmt: str) -> str:
-    if not shutil.which("pandoc"):
-        raise RuntimeError("Pandoc not found in PATH.")
-    try:
-        md = pypandoc.convert_file(
-            path,
-            to="markdown+tex_math_dollars",
-            format=fmt,
-            extra_args=["--wrap=none", "--strip-comments"]
-        )
-    except Exception as e:
-        logger.exception("Pandoc conversion failed")
-        raise RuntimeError(f"Pandoc conversion error: {e}")
-    return md.replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "")
-
-def replace_double_dashes(obj):
-    if isinstance(obj, dict):
-        return {k: replace_double_dashes(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [replace_double_dashes(v) for v in obj]
-    elif isinstance(obj, str):
-        return obj.replace("--", "-")
-    else:
-        return obj
-
-# -----------------------
-# Endpoint
-# -----------------------
 @app.post("/parse-json")
-async def parse_document(file: UploadFile = File(..., description="Upload a .docx or .html file")):
+async def parse_document(file: UploadFile = File(...)):
     suffix = Path(file.filename).suffix.lower()
     if suffix not in {".docx", ".html", ".htm"}:
-        raise HTTPException(status_code=400, detail="Unsupported file type, only .docx/.html")
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
-        content = await file.read()
-        tmp.write(content)
+        tmp.write(await file.read())
         tmp.close()
 
         fmt = "html" if suffix in {".html", ".htm"} else "docx"
         markdown = convert_to_markdown_with_latex(tmp.name, fmt)
-        logger.info("Converted to Markdown, length=%d", len(markdown))
 
-        # --- Запрос к модели ---
-        response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": markdown}
-            ],
-            temperature=0.0
-        )
-        logger.debug("OpenAI raw response object:\n%s", response)
+        MAX_RETRIES = 4
+        retries = 0
 
-        parsed_str = response.choices[0].message.content or ""
-        logger.debug("AI returned (raw):\n%s", parsed_str)
-
-        # Если отрезало по длине, пытаемся продолжить
-        if response.choices[0].finish_reason == "length":
-            logger.warning("AI JSON truncated, requesting continuation...")
-            more = openai.chat.completions.create(
+        while True:
+            response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": "Your previous JSON was truncated. Please continue the JSON object, with no extra text."},
-                    {"role": "assistant", "content": parsed_str}
+                    {"role": "user", "content": markdown}
                 ],
                 temperature=0.0
             )
-            logger.debug("Continuation raw:\n%s", more.choices[0].message.content)
-            parsed_str += more.choices[0].message.content or ""
+            parsed_str = response.choices[0].message.content or ""
 
-        # Пытаемся напрямую распарсить
-        try:
-            parsed_dict = json.loads(parsed_str)
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse JSON from AI: %s", e)
-            # Логируем полную «грязную» строку
-            logger.debug("Raw AI output for salvage:\n%s", parsed_str)
+            try:
+                parsed_dict = json.loads(parsed_str)
+                parsed_dict = replace_double_dashes(parsed_dict)
 
-            # Пытаемся вырезать JSON по первым/последним фигурным скобкам
-            raw = parsed_str.strip()
-            first = raw.find("{")
-            last = raw.rfind("}")
-            if first != -1 and last != -1 and last > first:
-                candidate = raw[first:last+1]
-                logger.debug("Attempting salvage JSON substring:\n%s", candidate)
-                try:
-                    parsed_dict = json.loads(candidate)
-                except Exception as e2:
-                    logger.error("Salvage JSON also failed: %s", e2)
-                    raise HTTPException(status_code=502, detail="Invalid JSON from AI after salvage")
-            else:
-                raise HTTPException(status_code=502, detail="Invalid JSON from AI and no JSON delimiters found")
+                validated = ParsedData.model_validate(parsed_dict)
+                if has_unclosed_dollar(parsed_dict):
+                    raise ValueError("Unclosed $ math expression found")
+                return validated
 
-        return replace_double_dashes(parsed_dict)
+            except (ValidationError, ValueError, json.JSONDecodeError) as ve:
+                logger.warning("Retry due to: %s", ve)
+                if retries >= MAX_RETRIES:
+                    raise HTTPException(status_code=422, detail="Validation failed after retries")
+                retries += 1
 
-    except RuntimeError as e:
-        logger.error("Processing error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
-    except openai.OpenAIError as e:
-        logger.error("OpenAI API error: %s", e)
-        raise HTTPException(status_code=502, detail=f"OpenAI error: {e}")
     finally:
-        try:
-            os.unlink(tmp.name)
-        except Exception:
-            pass
+        os.unlink(tmp.name)
 
 @app.get("/")
 async def root():
     return {"message": "Upload .docx or .html to /parse-json"}
 
-# -----------------------
-# Run locally
-# -----------------------
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
