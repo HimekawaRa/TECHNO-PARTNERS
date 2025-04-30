@@ -68,6 +68,11 @@ CRITICAL:
 - Return ONLY valid JSON, starting with '{' and ending with '}', no markdown fences.
 - Preserve ALL LaTeX math exactly as in the Markdown input, including both $...$ and \\(...\\) delimiters.
 - In the "explanation" field, always use '\\n' for every original line break in the explanation. Do NOT join all lines together.
+- The "explanation" field must preserve both formulas and regular explanation text.
+- Do not omit or summarize textbook-style phrases like "Учебник Алгебра и начала анализа. Абылкасымова А.Е...."
+- Always keep math formulas inside `$...$` or `\\(...\\)`, and plain text outside math mode.
+- Example: `Объяснение: $M[X] = x_1 p_1 + ... = 3.4$\nУчебник Алгебра и начала анализа. Абылкасымова А.Е....`
+- The explanation field is not only math — it must include regular textual content such as textbook references, descriptive sentences, etc., exactly as in the original.
 - The "options" field must be an **object** with option labels ("A", "B", etc.) as keys, and the answer text as values.
 - If a field is missing, set it to an empty string, empty object, or zero as appropriate.
 
