@@ -206,6 +206,8 @@ async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
                 q["explanation"] = "\n".join(lines)
             all_questions.append(q)
     logger.info(f"Total questions parsed: {len(all_questions)}")
-
+    logger.info(
+        "Calling fix_math_json with raw questions:\n" + json.dumps({"questions": all_questions}, ensure_ascii=False,
+                                                                   indent=2))
     fixed = fix_math_json({"questions": all_questions})
     return fixed
