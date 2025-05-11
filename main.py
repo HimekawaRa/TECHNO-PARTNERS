@@ -166,7 +166,7 @@ async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
 
         try:
             subprocess.run([
-                r"C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+                "libreoffice",
                 "--headless", "--convert-to", "pdf", task_doc,
                 "--outdir", tasks_dir
             ], check=True)
