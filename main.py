@@ -137,7 +137,7 @@ def fix_math_json(input_data: dict) -> dict:
     except json.JSONDecodeError:
         raise ValueError("Ответ от GPT не является валидным JSON:", args)
 
-@app.post("/convert-and-send/")
+@app.post("/convert-and-send/", tags=["GPT Parser"])
 async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
     logger.info("/convert-and-send/ called")
     contents = await file.read()
@@ -229,7 +229,7 @@ async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
 
 
 
-@app.post("/split-questions/")
+@app.post("/split-questions/", tags=["Python Parser"])
 async def split_questions_api(
     file: UploadFile = File(...),
     subject_name: str = Form(..., description="Название предмета"),
