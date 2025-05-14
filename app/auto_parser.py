@@ -356,7 +356,6 @@ def wrap_raw(raw_item) -> dict:
 
 
 def extract_number_and_vopros(state: dict) -> dict:
-    import re
     text = state["text"]
     logger.debug("STEP1: raw text:\n%s", text)
 
@@ -586,7 +585,6 @@ def extract_target(state: dict) -> dict:
     return new
 
 # Собирающая функция
-def pipeline(raw_item) -> dict:
     st = wrap_raw(raw_item)
     st = extract_number_and_vopros(st)
     st = extract_temy(st)
@@ -595,6 +593,142 @@ def pipeline(raw_item) -> dict:
     st = extract_exp(st)
     st = extract_target(st)
     return st
+
+
+
+def extract_matching_number_and_vopros(state: dict) -> dict:
+    """
+    Извлекает номер и формулировку вопроса (обрезает по линии '----').
+    """
+    text = state["text"]
+    logger.debug("MATCHING STEP1: raw text:\n%s", text)
+
+    lines = [l.strip() for l in text.replace("\r", "").split("\n")]
+    num = None
+    vopros = "вопрос не опознан"
+
+    # Поиск строки с номером задания
+    zadanie_re = re.compile(r"^\s*(\d+)\s*(?:задани[ея]?)", re.IGNORECASE)
+    start_line_idx = None
+
+    for i, line in enumerate(lines):
+        m = zadanie_re.match(line)
+        if m:
+            num = int(m.group(1))
+            start_line_idx = i
+            break
+
+    if start_line_idx is not None:
+        vopros_lines = []
+        for line in lines[start_line_idx + 1:]:
+            if re.search(r"-{5,}", line):  # обрезаем по линии
+                break
+            if line:
+                vopros_lines.append(line)
+        vopros = " ".join(vopros_lines).strip(" .:")
+        logger.debug("MATCHING STEP1: vopros assembled: %r", vopros)
+    else:
+        logger.warning("MATCHING STEP1: номер задания не найден")
+
+    return state | {"number": num, "vopros": vopros}
+
+
+def extract_matching_options(state: dict) -> dict:
+    raw = state.get("text", "")
+    # 1) Снимаем экранирование точек, скобок и квадратных скобок
+    text = (raw
+            .replace(r"\.", ".")
+            .replace(r"\)", ")")
+            .replace(r"\[", "[")
+            .replace(r"\]", "]"))
+
+    lines = text.splitlines()
+    group1 = {}
+    group2 = {}
+    in_block = False
+
+    for i, ln in enumerate(lines):
+        # 2) Ищем начало блока ("1. ")
+        if not in_block:
+            if re.match(r"^\s*1[.)]\s+", ln):
+                in_block = True
+            else:
+                continue
+
+        # 3) Останавливаемся, как только встретили заголовок следующего раздела
+        if re.match(r"^\s*(Раздел:|Тема:|Объяснение:|Балл:|Правильный ответ:)", ln):
+            break
+
+        # 4) Пропускаем чисто декоративные разделительные линии
+        if re.match(r"^\s*-{3,}\s*$", ln):
+            continue
+
+        # 5) Парсим строки вида "N. <текст>  X) <вариант>"
+        m = re.match(r"^\s*(\d+)[\.\)]\s+(.+)$", ln)
+        if not m:
+            continue
+
+        idx = int(m.group(1)) - 1
+        rest = m.group(2).strip()
+
+        # 6) Делим по первому вхождению "A)"/"B)"/…/"E)"
+        parts = re.split(r"\s+([A-E])\)\s+", rest, maxsplit=1)
+        if len(parts) == 3:
+            left, letter, right = parts
+            group1[idx] = left.strip()
+            group2[idx] = right.strip()
+        else:
+            group1[idx] = rest
+
+
+    # 7) Возвращаем обновлённый state с новыми otvety
+    new_state = state.copy()
+    new_state["otvety"] = {"group1": group1, "group2": group2}
+    return new_state
+
+def extract_matching_pravotv(st: dict) -> dict:
+    """
+    Ищет в raw.text строку 'Правильный ответ:' и парсит пары вида '1-C', '2-A' и т.д.
+    Записывает результат в st['pravOtv'] в виде словаря {left_idx: ['ts-right_idx'], ...}.
+    """
+    text = st.get("raw", {}).get("text", "")
+    m = re.search(r"Правильный ответ[:：]\s*(.+)", text)
+    if not m:
+        st["pravOtv"] = {}
+        return st
+
+    parts = re.split(r"[，,]\s*", m.group(1))
+    # сколько элементов в group1
+    group1 = st.get("otvety", {}).get("group1", {})
+    n = len(group1)
+
+    prav = {}
+    for part in parts:
+        m2 = re.match(r"\s*(\d+)\s*[-:]\s*([A-Z])", part)
+        if not m2:
+            continue
+        left_idx = int(m2.group(1)) - 1           # из "1-C" делаем 0
+        letter = m2.group(2)
+        right_idx = ord(letter) - ord("A")        # из "C" делаем 2
+        if 0 <= left_idx < n:
+            prav[str(left_idx)] = [f"ts-{right_idx}"]
+
+    st["pravOtv"] = prav
+    return st
+
+def pipeline_matching(raw_item) -> dict:
+    st = wrap_raw(raw_item)
+    st = extract_matching_number_and_vopros(st)
+    st = extract_temy(st)
+    st = extract_matching_options(st)
+    st = extract_matching_pravotv(st)
+    st = extract_exp(st)
+    st = extract_target(st)
+    return st
+
+
+
+
 
 
 def build_rows_with_placeholders(
