@@ -403,24 +403,40 @@ def extract_number_and_vopros(state: dict) -> dict:
 
 # Шаг 2: temy, temyid, temyname
 def extract_temy(state: dict) -> dict:
-    temy = temyid = temyname = None
-    for ln in state["text"].split("\n"):
+    temy_id = temy_name = podtemy_id = podtemy_name = None
+
+    for ln in state.get("text", "").splitlines():
+        # 1) Обрабатываем «Раздел:»
         if ln.startswith("Раздел:"):
-            temy = ln.split("Раздел:",1)[1].strip()
-        if ln.startswith("Тема:"):
-            tema = ln.split("Тема:",1)[1].strip()
-            m = re.match(r'^(\d+)[\-\u2013\s]+(.+)', tema)
-            if m:
-                temyid, temyname = m.group(1), m.group(2).strip()
+            raw = ln.split("Раздел:", 1)[1].strip()
+            # вытаскиваем номер и имя секции
+            m0 = re.match(r'^(\d+)[\-\u2013\s]*(.+)$', raw)
+            if m0:
+                temy_id   = m0.group(1)
+                temy_name = m0.group(2).strip().rstrip('.')
             else:
-                temyid, temyname = None, tema
-            # 1) Убираем завершающую точку у temyname
-            if isinstance(temyname, str):
-                temyname = temyname.rstrip('.')
+                temy_name = raw.rstrip('.')
+
+        # 2) Обрабатываем «Тема:» и затем выходим из цикла
+        elif ln.startswith("Тема:"):
+            raw = ln.split("Тема:", 1)[1].strip()
+            m1 = re.match(r'^(\d+)[\-\u2013\s]+(.+)', raw)
+            if m1:
+                podtemy_id   = m1.group(1)
+                podtemy_name = m1.group(2).strip().rstrip('.')
+            else:
+                podtemy_name = raw.rstrip('.')
             break
-    new = state.copy()
-    new.update({"temy": temy, "temyid": temyid, "temyname": temyname})
-    return new
+
+    # Собираем результат
+    new_state = state.copy()
+    new_state.update({
+        "temy_id":      temy_id,
+        "temy_name":    temy_name,
+        "podtemy_id":   podtemy_id,
+        "podtemy_name": podtemy_name,
+    })
+    return new_state
 
 # Шаг 3: otvety
 def extract_otvety(state: dict) -> dict:
@@ -757,16 +773,19 @@ def build_rows_with_placeholders(
                     "language": language,
                     "klass": klass,
                     "vopros": "вопрос не опознан",
-                    "temy": None,
-                    "temyname": None,
-                    "temyid": None,
+
+                    "temy_id": None,
+                    "temy_name": None,
+                    "podtemy_id": None,
+                    "podtemy_name": None,
+
                     "target": "",
                     "tip": tip,
                     "texty": "",
                     "otvety": ["", "", "", ""],
                     "pravOtv": [],
                     "exp": "",
-                    # "raw": None
+                    "raw": None
                 })
 
             # 2) Собственно вопрос
@@ -777,16 +796,21 @@ def build_rows_with_placeholders(
                 "language": language,
                 "klass": klass,
                 "vopros": state.get("vopros", "вопрос не опознан"),
-                "temy": state.get("temy"),
-                "temyname": state.get("temyname"),
-                "temyid": state.get("temyid"),
+
+
+                "temy_id": state.get("temy_id"),
+                "temy_name": state.get("temy_name"),
+                "podtemy_id": state.get("podtemy_id"),
+                "podtemy_name": state.get("podtemy_name"),
+
+
                 "target": state.get("target", ""),
                 "tip": tip,
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
                 "exp": state.get("exp", ""),
-                # "raw": state.get("raw", None)
+                "raw": state.get("raw", None)
             })
 
             last_id = curr_id
@@ -801,16 +825,19 @@ def build_rows_with_placeholders(
                 "language": language,
                 "klass": klass,
                 "vopros": state.get("vopros", "вопрос не опознан"),
-                "temy": state.get("temy"),
-                "temyname": state.get("temyname"),
-                "temyid": state.get("temyid"),
+
+                "temy_id": state.get("temy_id"),
+                "temy_name": state.get("temy_name"),
+                "podtemy_id": state.get("podtemy_id"),
+                "podtemy_name": state.get("podtemy_name"),
+
                 "target": state.get("target", ""),
                 "tip": tip,
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
                 "exp": state.get("exp", ""),
-                # "raw": state.get("raw", None)
+                "raw": state.get("raw", None)
             })
 
     return rows
