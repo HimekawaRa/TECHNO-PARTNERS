@@ -601,6 +601,7 @@ def extract_target(state: dict) -> dict:
     return new
 
 # Собирающая функция
+def pipeline_mcq(raw_item) -> dict:
     st = wrap_raw(raw_item)
     st = extract_number_and_vopros(st)
     st = extract_temy(st)
@@ -873,11 +874,18 @@ def clean_math_and_sub(s: str) -> str:
 
 def normalize_image_links(md: str, docname: str) -> str:
     """
-    Ищет в Markdown все ![](path/to/.../имя_файла)
-    и превращает их в ![](/img/<docname>/имя_файла)
+    Ищет в Markdown все ![](path/to/имя_файла)
+    и превращает их в ![](/img/<docname>/имя_файла.jpg), независимо от исходного расширения
     """
+    def replacer(match):
+        filename = match.group(1)
+        base, _ = os.path.splitext(filename)
+        new_filename = f"{base}.jpg"
+        return f"![](/img/{docname}/{new_filename})"
+
     return re.sub(
         r'!\[\]\((?:.*?)[\\/]+([^\\/]+)\)',
-        rf'![](/img/{docname}/\1)',
+        replacer,
         md
     )
+
