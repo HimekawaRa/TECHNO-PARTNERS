@@ -10,7 +10,7 @@ from docx.oxml.table import CT_Tbl
 from docx.table import Table as _Table
 from docx.text.paragraph import Paragraph
 import re
-
+import subprocess
 app = FastAPI()
 logger = logging.getLogger(__name__)
 
@@ -84,14 +84,28 @@ def split_questions_logic(src: str) -> list[dict]:
                 src_path = os.path.join(root, name)
                 base, ext = os.path.splitext(name)
                 dst_path = os.path.join(root, f"{base}.jpg")
+
                 if ext.lower() != '.jpg':
-                    try:
-                        img = Image.open(src_path)
-                        rgb_img = img.convert('RGB')
-                        rgb_img.save(dst_path, 'JPEG')
-                        os.remove(src_path)
-                    except Exception as e:
-                        logger.warning(f"Не удалось конвертировать {src_path} в .jpg: {e}")
+                    if ext.lower() in ['.emf', '.wmf']:
+                        try:
+                            subprocess.run([
+                                "libreoffice",
+                                "--headless",
+                                "--convert-to", "png",
+                                src_path,
+                                "--outdir", root
+                            ], check=True)
+                            os.remove(src_path)
+                        except Exception as e:
+                            logger.warning(f"Не удалось конвертировать {src_path} в PNG через libreoffice: {e}")
+                    else:
+                        try:
+                            img = Image.open(src_path)
+                            rgb_img = img.convert('RGB')
+                            rgb_img.save(dst_path, 'JPEG')
+                            os.remove(src_path)
+                        except Exception as e:
+                            logger.warning(f"Не удалось конвертировать {src_path} в .jpg: {e}")
 
         # 5) Заменяем ссылки в Markdown на .jpg
         md = normalize_image_links(md, docname)
