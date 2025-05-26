@@ -1,8 +1,9 @@
 FROM python:3.11-slim
 
-# Установка зависимостей и pandoc
 RUN apt-get update && apt-get install -y \
     libreoffice \
+    libreoffice-writer \
+    libwmf-bin \
     poppler-utils \
     build-essential \
     libglib2.0-0 \
@@ -11,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     wget \
     unzip \
-    inkscape \
     && wget https://github.com/jgm/pandoc/releases/download/3.1.11.1/pandoc-3.1.11.1-1-amd64.deb \
     && dpkg -i pandoc-3.1.11.1-1-amd64.deb \
     && rm pandoc-3.1.11.1-1-amd64.deb \
