@@ -822,8 +822,7 @@ def build_rows_with_placeholders(
                     "texty": "",
                     "otvety": ["", "", "", ""],
                     "pravOtv": [],
-                    "exp": "",
-                    "raw": None
+                    "exp": ""
                 })
 
             # 2) Собственно вопрос
@@ -847,8 +846,7 @@ def build_rows_with_placeholders(
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
-                "exp": state.get("exp", ""),
-                "raw": state.get("raw", None)
+                "exp": state.get("exp", "")
             })
 
             last_id = curr_id
@@ -874,8 +872,7 @@ def build_rows_with_placeholders(
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
-                "exp": state.get("exp", ""),
-                "raw": state.get("raw", None)
+                "exp": state.get("exp", "")
             })
 
     return rows
