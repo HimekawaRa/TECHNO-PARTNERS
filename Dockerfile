@@ -1,5 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
+# Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
     libreoffice \
     libreoffice-writer \
@@ -17,8 +18,8 @@ RUN apt-get update && apt-get install -y \
     && rm pandoc-3.1.11.1-1-amd64.deb \
     && rm -rf /var/lib/apt/lists/*
 
+# Установка Python-зависимостей
 WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -26,4 +27,5 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
+# Запуск uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
