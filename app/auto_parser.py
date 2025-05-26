@@ -56,7 +56,8 @@ def split_docx_into_questions(input_path: str, output_dir: str) -> list[str]:
 
 def split_questions_logic(src: str) -> list[dict]:
     tmp = os.path.dirname(src)
-    docname = os.path.splitext(os.path.basename(src))[0].replace(' ', '_')
+    docname = os.path.splitext(os.path.basename(src))[0]
+    docname = docname.replace(' ', '_')  # Нормализация имени документа
 
     # 1) Разбиваем на части
     parts_dir = os.path.join(tmp, "parts")
@@ -83,15 +84,9 @@ def split_questions_logic(src: str) -> list[dict]:
         for root, _, files in os.walk(media_dir):
             for name in files:
                 try:
-                    src_path = os.path.join(root, name)
-
-                    # Нормализация имени файла
                     normalized_name = name.replace(' ', '_')
-                    if normalized_name != name:
-                        normalized_path = os.path.join(root, normalized_name)
-                        os.rename(src_path, normalized_path)
-                        src_path = normalized_path
-                        name = normalized_name
+                    name = normalized_name
+                    src_path = os.path.join(root, name)
 
                     base, ext = os.path.splitext(name)
                     dst_path = os.path.join(root, f"{base}.jpg")
