@@ -53,21 +53,23 @@ def split_docx_into_questions(input_path: str, output_dir: str) -> list[str]:
         out_paths.append(out_file)
     return out_paths
 
+
 def split_questions_logic(src: str) -> list[dict]:
     tmp = os.path.dirname(src)
     docname = os.path.splitext(os.path.basename(src))[0]
+    docname = docname.replace(' ', '_')  # Нормализация имени документа
 
-    # 1) разбиваем на части
+    # 1) Разбиваем на части
     parts_dir = os.path.join(tmp, "parts")
     part_paths = split_docx_into_questions(src, parts_dir)
 
-    # 2) готовим папку, куда Pandoc будет извлекать медиа
+    # 2) Готовим папку для медиафайлов
     media_dir = os.path.join(tmp, "media")
     os.makedirs(media_dir, exist_ok=True)
 
     questions: list[dict] = []
     for idx, path in enumerate(part_paths, start=1):
-        # 3) конвертим кусочек в Markdown с извлечением медиа
+        # 3) Конвертация в Markdown с извлечением медиа
         md = pypandoc.convert_file(
             path,
             to="markdown+tex_math_dollars",
@@ -78,36 +80,49 @@ def split_questions_logic(src: str) -> list[dict]:
             ],
         ).strip()
 
-        # 4) Конвертируем все изображения в media_dir → .jpg
+        # 4) Конвертация и нормализация изображений
         for root, _, files in os.walk(media_dir):
             for name in files:
-                src_path = os.path.join(root, name)
-                base, ext = os.path.splitext(name)
-                dst_path = os.path.join(root, f"{base}.jpg")
+                try:
+                    src_path = os.path.join(root, name)
 
-                if ext.lower() != '.jpg':
+                    # Нормализация имени файла
+                    normalized_name = name.replace(' ', '_')
+                    if normalized_name != name:
+                        normalized_path = os.path.join(root, normalized_name)
+                        os.rename(src_path, normalized_path)
+                        src_path = normalized_path
+                        name = normalized_name
+
+                    base, ext = os.path.splitext(name)
+                    dst_path = os.path.join(root, f"{base}.jpg")
+
+                    # Конвертация WMF/EMF через LibreOffice
                     if ext.lower() in ['.emf', '.wmf']:
-                        try:
-                            subprocess.run([
-                                "libreoffice",
-                                "--headless",
-                                "--convert-to", "png",
-                                src_path,
-                                "--outdir", root
-                            ], check=True)
-                            os.remove(src_path)
-                        except Exception as e:
-                            logger.warning(f"Не удалось конвертировать {src_path} в PNG через libreoffice: {e}")
-                    else:
-                        try:
-                            img = Image.open(src_path)
-                            rgb_img = img.convert('RGB')
-                            rgb_img.save(dst_path, 'JPEG')
-                            os.remove(src_path)
-                        except Exception as e:
-                            logger.warning(f"Не удалось конвертировать {src_path} в .jpg: {e}")
+                        subprocess.run([
+                            "libreoffice",
+                            "--headless",
+                            "--convert-to", "png",
+                            src_path,
+                            "--outdir", root
+                        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        os.remove(src_path)
+                        src_path = os.path.join(root, f"{base}.png")
 
-        # 5) Заменяем ссылки в Markdown на .jpg
+                    # Конвертация в JPEG через PIL
+                    if not src_path.endswith('.jpg'):
+                        img = Image.open(src_path)
+                        rgb_img = img.convert('RGB')
+                        final_name = f"{base.replace(' ', '_')}.jpg"
+                        final_path = os.path.join(root, final_name)
+                        rgb_img.save(final_path, 'JPEG')
+                        if src_path != final_path:
+                            os.remove(src_path)
+
+                except Exception as e:
+                    logger.warning(f"Ошибка обработки {src_path}: {str(e)}")
+
+        # 5) Нормализация ссылок в Markdown
         md = normalize_image_links(md, docname)
 
         questions.append({
@@ -899,11 +914,12 @@ def normalize_image_links(md: str, docname: str) -> str:
     Ищет в Markdown все ![](path/to/имя_файла)
     и превращает их в ![](/img/<docname>/имя_файла.jpg), независимо от исходного расширения
     """
+    docname = docname.replace(' ', '_')  # Нормализуем имя директории
     def replacer(match):
         filename = match.group(1)
+        filename = filename.replace(' ', '_')
         base, _ = os.path.splitext(filename)
-        new_filename = f"{base}.jpg"
-        return f"![](/img/{docname}/{new_filename})"
+        return f"![](/img/{docname}/{base}.jpg)"
 
     return re.sub(
         r'!\[\]\((?:.*?)[\\/]+([^\\/]+)\)',
