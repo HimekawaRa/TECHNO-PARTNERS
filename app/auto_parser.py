@@ -64,7 +64,7 @@ def split_questions_logic(src: str) -> list[dict]:
     part_paths = split_docx_into_questions(src, parts_dir)
 
     # 2) Готовим папку для медиафайлов
-    media_dir = os.path.join(tmp, "media", docname)
+    media_dir = os.path.join(tmp, "media")
     os.makedirs(media_dir, exist_ok=True)
 
     questions: list[dict] = []
@@ -84,9 +84,15 @@ def split_questions_logic(src: str) -> list[dict]:
         for root, _, files in os.walk(media_dir):
             for name in files:
                 try:
-                    normalized_name = name.replace(' ', '_')
-                    name = normalized_name
                     src_path = os.path.join(root, name)
+
+                    # Нормализация имени файла
+                    normalized_name = name.replace(' ', '_')
+                    if normalized_name != name:
+                        normalized_path = os.path.join(root, normalized_name)
+                        os.rename(src_path, normalized_path)
+                        src_path = normalized_path
+                        name = normalized_name
 
                     base, ext = os.path.splitext(name)
                     dst_path = os.path.join(root, f"{base}.jpg")
@@ -908,6 +914,7 @@ def normalize_image_links(md: str, docname: str) -> str:
     Ищет в Markdown все ![](path/to/имя_файла)
     и превращает их в ![](/img/<docname>/имя_файла.jpg), независимо от исходного расширения
     """
+    docname = docname.replace(' ', '_')  # Нормализуем имя директории
     def replacer(match):
         filename = match.group(1)
         filename = filename.replace(' ', '_')
@@ -919,4 +926,3 @@ def normalize_image_links(md: str, docname: str) -> str:
         replacer,
         md
     )
-
