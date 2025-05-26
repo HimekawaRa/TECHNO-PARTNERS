@@ -16,19 +16,15 @@ services:
       - backend_net
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     container_name: nginx_proxy
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - /etc/letsencrypt:/etc/letsencrypt
     depends_on:
       - fastapi
-    restart: always
-    networks:
-      - backend_net
+    restart: unless-stopped
 
 networks:
   backend_net:
