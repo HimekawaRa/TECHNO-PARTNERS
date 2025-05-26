@@ -10,10 +10,8 @@ services:
       - ./sent_images:/app/sent_images
     env_file:
       - .env
-    ports:
-      - "8000:8000"
-    networks:
-      - backend_net
+    expose:
+      - "8000"
 
   nginx:
     image: nginx:latest
@@ -27,9 +25,3 @@ services:
     depends_on:
       - fastapi
     restart: always
-    networks:
-      - backend_net
-
-networks:
-  backend_net:
-    driver: bridge
