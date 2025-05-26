@@ -12,6 +12,8 @@ services:
       - .env
     expose:
       - "8000"
+    networks:
+      - backend_net
 
   nginx:
     image: nginx:latest
@@ -25,3 +27,9 @@ services:
     depends_on:
       - fastapi
     restart: always
+    networks:
+      - backend_net
+
+networks:
+  backend_net:
+    driver: bridge
