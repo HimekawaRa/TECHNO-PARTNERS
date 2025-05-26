@@ -239,9 +239,11 @@ async def split_questions_api(
     tip: int = Form(1, description="Тип задания (целое число)")
 ):
     tmp = tempfile.mkdtemp()
+    filename = (file.filename or "input.docx").replace(' ', '_')
+    src = os.path.join(tmp, filename)
+    docname = os.path.splitext(filename)[0]
     try:
         # 1) Сохраняем загруженный .docx во временную папку
-        src = os.path.join(tmp, file.filename or "input.docx")
         with open(src, "wb") as f:
             f.write(await file.read())
 
@@ -249,9 +251,8 @@ async def split_questions_api(
         try:
             raw_list = split_questions_logic(src)
 
-            # Перемещаем все извлечённые Pandoc'ом медиа-файлы в static/img/<docname>
+            # Перемещаем извлечённые изображения в static/img/<docname>
             media_dir = os.path.join(tmp, "media")
-            docname = os.path.splitext(file.filename or "input")[0]
             target_img_dir = os.path.join(IMG_DIR, docname)
             os.makedirs(target_img_dir, exist_ok=True)
 
@@ -259,30 +260,30 @@ async def split_questions_api(
                 for root, _, files in os.walk(media_dir):
                     for fname in files:
                         src_img = os.path.join(root, fname)
-                        dst_img = os.path.join(target_img_dir, fname)
+                        fname_clean = fname.replace(' ', '_')
+                        dst_img = os.path.join(target_img_dir, fname_clean)
                         shutil.copy2(src_img, dst_img)
 
         except Exception as e:
             logger.error("Ошибка при split_questions_logic: %s", e)
             raise HTTPException(status_code=400, detail=str(e))
 
-        # 3) Прогоним через нашу ML-пайплайн логику
+        # 3) Прогоним через пайплайн для multiple choice
         states = [pipeline_mcq(raw_item) for raw_item in raw_list]
 
         # 4) Собираем итоговые строки
         subject = {"name": subject_name, "namekz": subject_namekz}
         db_rows = build_rows_with_placeholders(states, subject, language, klass, tip)
 
-        # 5) Чистим математические выражения
+        # 5) Чистим LaTeX/математические выражения
         for row in db_rows:
             row["vopros"] = clean_math_and_sub(row.get("vopros", ""))
-            row["exp"]    = clean_math_and_sub(row.get("exp", ""))
+            row["exp"] = clean_math_and_sub(row.get("exp", ""))
             row["otvety"] = [clean_math_and_sub(opt) for opt in row.get("otvety", [])]
 
         return {"questions": db_rows}
 
     finally:
-        # Убираем временную папку
         shutil.rmtree(tmp, ignore_errors=True)
 
 @app.post("/split-matching-questions/", tags=["Python Parser"])
@@ -295,9 +296,11 @@ async def split_questions_api(
     tip: int = Form(1, description="Тип задания (целое число)")
 ):
     tmp = tempfile.mkdtemp()
+    filename = (file.filename or "input.docx").replace(' ', '_')
+    src = os.path.join(tmp, filename)
+    docname = os.path.splitext(filename)[0]
     try:
         # 1) Сохраняем загруженный .docx во временную папку
-        src = os.path.join(tmp, file.filename or "input.docx")
         with open(src, "wb") as f:
             f.write(await file.read())
 
@@ -307,7 +310,6 @@ async def split_questions_api(
 
             # Перемещаем все извлечённые Pandoc'ом медиа-файлы в static/img/<docname>
             media_dir = os.path.join(tmp, "media")
-            docname = os.path.splitext(file.filename or "input")[0]
             target_img_dir = os.path.join(IMG_DIR, docname)
             os.makedirs(target_img_dir, exist_ok=True)
 
@@ -315,7 +317,8 @@ async def split_questions_api(
                 for root, _, files in os.walk(media_dir):
                     for fname in files:
                         src_img = os.path.join(root, fname)
-                        dst_img = os.path.join(target_img_dir, fname)
+                        fname_clean = fname.replace(' ', '_')
+                        dst_img = os.path.join(target_img_dir, fname_clean)
                         shutil.copy2(src_img, dst_img)
 
         except Exception as e:
@@ -337,9 +340,7 @@ async def split_questions_api(
                 for key, val in list(opts.items()):
                     opts[key] = clean_math_and_sub(val)
 
-
         return {"questions": db_rows}
 
     finally:
-        # Убираем временную папку
         shutil.rmtree(tmp, ignore_errors=True)
