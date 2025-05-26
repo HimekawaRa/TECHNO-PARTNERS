@@ -10,8 +10,8 @@ services:
       - ./sent_images:/app/sent_images
     env_file:
       - .env
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     networks:
       - backend_net
 
