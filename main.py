@@ -137,6 +137,10 @@ def fix_math_json(input_data: dict) -> dict:
     except json.JSONDecodeError:
         raise ValueError("Ответ от GPT не является валидным JSON:", args)
 
+@app.get("/healthcheck")
+async def healthcheck():
+    return {"status": "ok"}
+
 @app.post("/convert-and-send/", tags=["GPT Parser"])
 async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
     logger.info("/convert-and-send/ called")
