@@ -1,7 +1,6 @@
 import logging
 import os
-from typing import List, Dict
-import time
+from PIL import Image
 import pypandoc
 from fastapi import FastAPI
 from docx import Document
@@ -55,12 +54,6 @@ def split_docx_into_questions(input_path: str, output_dir: str) -> list[str]:
     return out_paths
 
 def split_questions_logic(src: str) -> list[dict]:
-    """
-    Принимает путь к сохранённому docx (src),
-    возвращает список вопросов вида [{"number": .., "text": ..}, ...],
-    причём все картинки из документа будут извлечены в <tmp>/media,
-    а в тексте Markdown ссылки на них заменены на /img/<docx_name>/<filename>.
-    """
     tmp = os.path.dirname(src)
     docname = os.path.splitext(os.path.basename(src))[0]
 
@@ -74,7 +67,7 @@ def split_questions_logic(src: str) -> list[dict]:
 
     questions: list[dict] = []
     for idx, path in enumerate(part_paths, start=1):
-        # 3) конвертим этот кусочек в Markdown, извлекая все картинки
+        # 3) конвертим кусочек в Markdown с извлечением медиа
         md = pypandoc.convert_file(
             path,
             to="markdown+tex_math_dollars",
@@ -85,7 +78,22 @@ def split_questions_logic(src: str) -> list[dict]:
             ],
         ).strip()
 
-        # 4) заменяем все ссылки на media/... → /img/<docname>/...
+        # 4) Конвертируем все изображения в media_dir → .jpg
+        for root, _, files in os.walk(media_dir):
+            for name in files:
+                src_path = os.path.join(root, name)
+                base, ext = os.path.splitext(name)
+                dst_path = os.path.join(root, f"{base}.jpg")
+                if ext.lower() != '.jpg':
+                    try:
+                        img = Image.open(src_path)
+                        rgb_img = img.convert('RGB')
+                        rgb_img.save(dst_path, 'JPEG')
+                        os.remove(src_path)
+                    except Exception as e:
+                        logger.warning(f"Не удалось конвертировать {src_path} в .jpg: {e}")
+
+        # 5) Заменяем ссылки в Markdown на .jpg
         md = normalize_image_links(md, docname)
 
         questions.append({
