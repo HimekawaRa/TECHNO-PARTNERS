@@ -529,27 +529,7 @@ def extract_otvety(state: dict) -> dict:
     new = state.copy()
     new["otvety"] = opts
     return new
-#
-# def extract_prav_otv(state: dict) -> dict:
-#     """
-#     Извлекает правильные ответы из текста, включая A|, B|, ..., даже если таких несколько.
-#     """
-#     text = state.get("text", "")
-#     text_cleaned = text.replace("\r", "").replace("\n", " ")  # на случай переноса
-#
-#     # Ищем все буквы A–F перед \|, как в "A\|", "B\|"
-#     found = re.findall(r'([A-F])\\\|', text_cleaned, flags=re.IGNORECASE)
-#     logger.debug("STEP4: found letters = %r", found)
-#
-#     # Преобразуем в индексы
-#     mapping = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5}
-#     indexes = [mapping[letter.upper()] for letter in found if letter.upper() in mapping]
-#
-#     logger.info("STEP4: pravOtv indexes = %r", indexes)
-#
-#     new = state.copy()
-#     new["pravOtv"] = indexes
-#     return new
+
 
 def extract_prav_otv(state: dict) -> dict:
     import re
@@ -586,7 +566,6 @@ def extract_prav_otv(state: dict) -> dict:
     new["pravOtv"] = indexes
     return new
 
-# Шаг 5: exp
 
 def extract_exp(state: dict) -> dict:
     exp_lines = []
@@ -637,6 +616,45 @@ def extract_target(state: dict) -> dict:
     new["target"] = target
     return new
 
+
+def extract_difficulty(state: dict) -> dict:
+    """
+    Ищет в state["text"] строку 'Уровень сложности:' и парсит букву A, B или C.
+    Сохраняет результат в state['difficulty'].
+    """
+    text = state.get("text", "")
+    difficulty = None
+    for ln in text.splitlines():
+        if ln.startswith("Уровень сложности:"):
+            # берём всё, что после двоеточия, убираем пробелы
+            val = ln.split("Уровень сложности:", 1)[1].strip()
+            # сопоставляем только первую букву A, B или C
+            m = re.search(r'Уровень сложности[:：]?\s*([ABC])', text, flags=re.IGNORECASE)
+            if m:
+                difficulty = m.group(1).upper()
+            break
+    new = state.copy()
+    new["difficulty"] = difficulty
+    return new
+
+def extract_quarter(state: dict) -> dict:
+    """
+    Ищет в state["text"] строку 'Четверть:' и парсит цифру 1–4.
+    Сохраняет результат в state['quarter'].
+    """
+    text = state.get("text", "")
+    quarter = None
+    for ln in text.splitlines():
+        if ln.startswith("Четверть:"):
+            val = ln.split("Четверть:", 1)[1].strip()
+            m = re.match(r'([1-4])', val)
+            if m:
+                quarter = int(m.group(1))
+            break
+    new = state.copy()
+    new["quarter"] = quarter
+    return new
+
 # Собирающая функция
 def pipeline_mcq(raw_item) -> dict:
     st = wrap_raw(raw_item)
@@ -646,6 +664,8 @@ def pipeline_mcq(raw_item) -> dict:
     st = extract_prav_otv(st)
     st = extract_exp(st)
     st = extract_target(st)
+    st = extract_difficulty(st)
+    st = extract_quarter(st)
     return st
 
 
@@ -778,6 +798,8 @@ def pipeline_matching(raw_item) -> dict:
     st = extract_matching_pravotv(st)
     st = extract_exp(st)
     st = extract_target(st)
+    st = extract_difficulty(st)
+    st = extract_quarter(st)
     return st
 
 
@@ -822,7 +844,9 @@ def build_rows_with_placeholders(
                     "texty": "",
                     "otvety": ["", "", "", ""],
                     "pravOtv": [],
-                    "exp": ""
+                    "exp": "",
+                    "difficulty": None,
+                    "quarter": None
                 })
 
             # 2) Собственно вопрос
@@ -846,7 +870,10 @@ def build_rows_with_placeholders(
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
-                "exp": state.get("exp", "")
+                "exp": state.get("exp", ""),
+                "difficulty": state.get("difficulty"),
+                "quarter": state.get("quarter")
+                #,"raw": state.get("raw")
             })
 
             last_id = curr_id
@@ -872,7 +899,10 @@ def build_rows_with_placeholders(
                 "texty": "",
                 "otvety": state.get("otvety", ["", "", "", ""]),
                 "pravOtv": state.get("pravOtv", []),
-                "exp": state.get("exp", "")
+                "exp": state.get("exp", ""),
+                "difficulty": state.get("difficulty"),
+                "quarter": state.get("quarter")
+                #,"raw": state.get("raw")
             })
 
     return rows
