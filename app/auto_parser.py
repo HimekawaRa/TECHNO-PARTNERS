@@ -439,41 +439,39 @@ def extract_number_and_vopros(state: dict) -> dict:
     return new
 
 # Шаг 2: temy, temyid, temyname
+# Шаг 2: temy, temyid, temyname
 def extract_temy(state: dict) -> dict:
     temy_id = temy_name = podtemy_id = podtemy_name = None
 
     for ln in state.get("text", "").splitlines():
-        # 1) Обрабатываем «Раздел:»
         if ln.startswith("Раздел:"):
-            raw = ln.split("Раздел:", 1)[1].strip()
-            # вытаскиваем номер и имя секции
-            m0 = re.match(r'^(\d+)[\-\u2013\s]*(.+)$', raw)
+            raw = ln.split("Раздел:", 1)[1]
+            raw = raw.replace("_", " ").strip()       # <-- убрали все '_' и обрезали пробелы
+            m0  = re.match(r'^(\d+)[\-\u2013\s]+(.+)$', raw)
             if m0:
-                temy_id   = m0.group(1)
-                temy_name = m0.group(2).strip().rstrip('.')
+                temy_id, temy_name = m0.group(1), m0.group(2).strip()
             else:
-                temy_name = raw.rstrip('.')
+                temy_name = raw
 
-        # 2) Обрабатываем «Тема:» и затем выходим из цикла
         elif ln.startswith("Тема:"):
-            raw = ln.split("Тема:", 1)[1].strip()
-            m1 = re.match(r'^(\d+)[\-\u2013\s]+(.+)', raw)
+            raw = ln.split("Тема:", 1)[1]
+            raw = raw.replace("_", " ").strip()       # <-- то же для Тема
+            m1  = re.match(r'^(\d+)[\-\u2013\s]+(.+)$', raw)
             if m1:
-                podtemy_id   = m1.group(1)
-                podtemy_name = m1.group(2).strip().rstrip('.')
+                podtemy_id, podtemy_name = m1.group(1), m1.group(2).strip()
             else:
-                podtemy_name = raw.rstrip('.')
+                podtemy_name = raw
             break
 
-    # Собираем результат
-    new_state = state.copy()
-    new_state.update({
-        "temy_id":      temy_id,
-        "temy_name":    temy_name,
-        "podtemy_id":   podtemy_id,
+    new = state.copy()
+    new.update({
+        "temy_id":    temy_id,
+        "temy_name":  temy_name,
+        "podtemy_id": podtemy_id,
         "podtemy_name": podtemy_name,
     })
-    return new_state
+    return new
+
 
 # Шаг 3: otvety
 def extract_otvety(state: dict) -> dict:
@@ -618,41 +616,34 @@ def extract_target(state: dict) -> dict:
 
 
 def extract_difficulty(state: dict) -> dict:
-    """
-    Ищет в state["text"] строку 'Уровень сложности:' и парсит букву A, B или C.
-    Сохраняет результат в state['difficulty'].
-    """
-    text = state.get("text", "")
-    difficulty = None
-    for ln in text.splitlines():
-        if ln.startswith("Уровень сложности:"):
-            # берём всё, что после двоеточия, убираем пробелы
-            val = ln.split("Уровень сложности:", 1)[1].strip()
-            # сопоставляем только первую букву A, B или C
-            m = re.search(r'Уровень сложности[:：]?\s*([ABC])', text, flags=re.IGNORECASE)
+    diff = None
+    for ln in state["text"].splitlines():
+        if ln.startswith("Уровень:"):
+            # допускаем как "Уровень: С", так и "Уровень сложности: А"
+            val = ln.split(":",1)[1]
+            # кириллицу в латиницу
+            val = val.replace('С','C').replace('А','A').replace('В','B')
+            m = re.search(r'\b([ABC])\b', val, flags=re.IGNORECASE)
             if m:
-                difficulty = m.group(1).upper()
+                diff = m.group(1).upper()
             break
     new = state.copy()
-    new["difficulty"] = difficulty
+    new["difficulty"] = diff
     return new
 
 def extract_quarter(state: dict) -> dict:
-    """
-    Ищет в state["text"] строку 'Четверть:' и парсит цифру 1–4.
-    Сохраняет результат в state['quarter'].
-    """
-    text = state.get("text", "")
-    quarter = None
-    for ln in text.splitlines():
+    q = None
+    for ln in state["text"].splitlines():
         if ln.startswith("Четверть:"):
-            val = ln.split("Четверть:", 1)[1].strip()
+            val = ln.split(":",1)[1].strip()
+            # убираем любые подчёркивания
+            val = val.replace("_"," ").strip()
             m = re.match(r'([1-4])', val)
             if m:
-                quarter = int(m.group(1))
+                q = int(m.group(1))
             break
     new = state.copy()
-    new["quarter"] = quarter
+    new["quarter"] = q
     return new
 
 # Собирающая функция
@@ -873,7 +864,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                #,"raw": state.get("raw")
+                ,"raw": state.get("raw")
             })
 
             last_id = curr_id
@@ -902,7 +893,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                #,"raw": state.get("raw")
+                ,"raw": state.get("raw")
             })
 
     return rows
