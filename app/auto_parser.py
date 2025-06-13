@@ -864,7 +864,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                ,"raw": state.get("raw")
+                # ,"raw": state.get("raw")
             })
 
             last_id = curr_id
@@ -893,7 +893,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                ,"raw": state.get("raw")
+                # ,"raw": state.get("raw")
             })
 
     return rows
