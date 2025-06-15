@@ -76,7 +76,7 @@ def split_questions_logic(src: str) -> list[dict]:
             format="docx",
             extra_args=[
                 "--wrap=none",
-                f"--extract-media={media_dir}"
+                #f"--extract-media={media_dir}"
             ],
         ).strip()
 
@@ -123,6 +123,7 @@ def split_questions_logic(src: str) -> list[dict]:
                     logger.warning(f"Ошибка обработки {src_path}: {str(e)}")
 
         # 5) Нормализация ссылок в Markdown
+        real_md = md
         md = normalize_image_links(md, docname)
 
         questions.append({
@@ -864,7 +865,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                # ,"raw": state.get("raw")
+                #,"raw": state.get("raw")
             })
 
             last_id = curr_id
@@ -893,7 +894,7 @@ def build_rows_with_placeholders(
                 "exp": state.get("exp", ""),
                 "difficulty": state.get("difficulty"),
                 "quarter": state.get("quarter")
-                # ,"raw": state.get("raw")
+                #,"raw": state.get("raw")
             })
 
     return rows
@@ -929,18 +930,20 @@ def clean_math_and_sub(s: str) -> str:
 
 def normalize_image_links(md: str, docname: str) -> str:
     """
-    Ищет в Markdown все ![](path/to/имя_файла)
-    и превращает их в ![](/img/<docname>/имя_файла.jpg), независимо от исходного расширения
+    Преобразует ![](media/filename.ext){...} в ![](/img/docname/filename.jpg),
+    удаляя width/height и расширение файла.
     """
     docname = docname.replace(' ', '_')  # Нормализуем имя директории
+
     def replacer(match):
-        filename = match.group(1)
-        filename = filename.replace(' ', '_')
+        filepath = match.group(1)
+        filename = os.path.basename(filepath).replace(' ', '_')
         base, _ = os.path.splitext(filename)
         return f"![](/img/{docname}/{base}.jpg)"
 
+    # Удаляем width/height
     return re.sub(
-        r'!\[\]\((?:.*?)[\\/]+([^\\/]+)\)',
+        r'!\[\]\((.*?)\)\s*\{[^}]*\}',
         replacer,
         md
     )
