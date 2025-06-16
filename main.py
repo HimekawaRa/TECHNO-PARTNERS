@@ -143,96 +143,96 @@ def fix_math_json(input_data: dict) -> dict:
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "ok"}
-
-@app.post("/convert-and-send/", tags=["GPT Parser"])
-async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
-    logger.info("/convert-and-send/ called")
-    contents = await file.read()
-    filename_base = os.path.splitext(file.filename or "uploaded")[0]
-    input_path = f"{filename_base}.docx"
-    with open(input_path, "wb") as f:
-        f.write(contents)
-    logger.info(f"Saved uploaded docx to {input_path}")
-
-    tasks_dir = "tasks_docs"
-    images_dir = "sent_images"
-    os.makedirs(tasks_dir, exist_ok=True)
-    os.makedirs(images_dir, exist_ok=True)
-
-    doc = Document(input_path)
-    pattern = re.compile(r'^\d+\.?\s*задани', flags=re.IGNORECASE)
-    all_blocks = list(iter_block_items(doc))
-    task_indices = [i for i, b in enumerate(all_blocks) if isinstance(b, Paragraph) and pattern.match(b.text.strip())]
-    logger.info(f"Found task indices: {task_indices}")
-    if not task_indices:
-        return {"error": "В загруженном файле не найдены заголовки заданий."}
-
-    task_ranges = []
-    for i, start in enumerate(task_indices):
-        end = task_indices[i+1] - 1 if i+1 < len(task_indices) else len(all_blocks)-1
-        task_ranges.append((start, end))
-    logger.info(f"Task ranges: {task_ranges}")
-
-    image_paths = []
-    for num, (s, e) in enumerate(task_ranges, start=1):
-        doc_full = Document(input_path)
-        body = doc_full.element.body
-        elems = list(body)
-        for idx in range(len(elems)-1, -1, -1):
-            if idx < s or idx > e:
-                if elems[idx].tag.endswith('}sectPr'): continue
-                body.remove(elems[idx])
-        task_doc = os.path.join(tasks_dir, f"task{num}.docx")
-        doc_full.save(task_doc)
-        logger.info(f"Saved task {num} docx to {task_doc}")
-
-        try:
-            subprocess.run([
-                "libreoffice",
-                "--headless", "--convert-to", "pdf", task_doc,
-                "--outdir", tasks_dir
-            ], check=True)
-            logger.info(f"Converted task {num} to PDF")
-        except FileNotFoundError:
-            return {"error": "LibreOffice не установлена или недоступна в PATH."}
-
-        pdf_file = os.path.join(tasks_dir, f"task{num}.pdf")
-        pages = convert_from_path(pdf_file, dpi=200)
-        img = pages[0]
-        img_file = os.path.join(images_dir, f"task{num}.png")
-        img.save(img_file)
-        logger.info(f"Saved image for task {num}: {img_file}")
-        image_paths.append(img_file)
-        os.remove(pdf_file)
-
-    os.remove(input_path)
-    logger.info("Removed original docx")
-
-    all_questions = []
-    for path in image_paths:
-        logger.info(f"Processing GPT for image {path}")
-        resp = await send_image_to_gpt(path)
-        for q in resp.get("questions", []):
-            if q.get("error"): continue
-            ca = q.get("correct_answer", "")
-            if isinstance(ca, str) and "|" in ca:
-                q["correct_answer"] = ca.split("|",1)[0].strip()
-            for k,v in q.get("options",{}).items():
-                if not v.startswith("$"): q["options"][k] = f"${v}$"
-            expl = q.get("explanation","")
-            if expl:
-                lines = expl.split("\n")
-                for i,ln in enumerate(lines):
-                    if re.search(r"[=+\-^]|\\frac", ln) and not ln.startswith("$"):
-                        lines[i] = f"${ln}$"
-                q["explanation"] = "\n".join(lines)
-            all_questions.append(q)
-    logger.info(f"Total questions parsed: {len(all_questions)}")
-    logger.info(
-        "Calling fix_math_json with raw questions:\n" + json.dumps({"questions": all_questions}, ensure_ascii=False,
-                                                                   indent=2))
-    fixed = fix_math_json({"questions": all_questions})
-    return fixed
+#
+# @app.post("/convert-and-send/", tags=["GPT Parser"])
+# async def convert_docx_to_images_and_send(file: UploadFile = File(...)):
+#     logger.info("/convert-and-send/ called")
+#     contents = await file.read()
+#     filename_base = os.path.splitext(file.filename or "uploaded")[0]
+#     input_path = f"{filename_base}.docx"
+#     with open(input_path, "wb") as f:
+#         f.write(contents)
+#     logger.info(f"Saved uploaded docx to {input_path}")
+#
+#     tasks_dir = "tasks_docs"
+#     images_dir = "sent_images"
+#     os.makedirs(tasks_dir, exist_ok=True)
+#     os.makedirs(images_dir, exist_ok=True)
+#
+#     doc = Document(input_path)
+#     pattern = re.compile(r'^\d+\.?\s*задани', flags=re.IGNORECASE)
+#     all_blocks = list(iter_block_items(doc))
+#     task_indices = [i for i, b in enumerate(all_blocks) if isinstance(b, Paragraph) and pattern.match(b.text.strip())]
+#     logger.info(f"Found task indices: {task_indices}")
+#     if not task_indices:
+#         return {"error": "В загруженном файле не найдены заголовки заданий."}
+#
+#     task_ranges = []
+#     for i, start in enumerate(task_indices):
+#         end = task_indices[i+1] - 1 if i+1 < len(task_indices) else len(all_blocks)-1
+#         task_ranges.append((start, end))
+#     logger.info(f"Task ranges: {task_ranges}")
+#
+#     image_paths = []
+#     for num, (s, e) in enumerate(task_ranges, start=1):
+#         doc_full = Document(input_path)
+#         body = doc_full.element.body
+#         elems = list(body)
+#         for idx in range(len(elems)-1, -1, -1):
+#             if idx < s or idx > e:
+#                 if elems[idx].tag.endswith('}sectPr'): continue
+#                 body.remove(elems[idx])
+#         task_doc = os.path.join(tasks_dir, f"task{num}.docx")
+#         doc_full.save(task_doc)
+#         logger.info(f"Saved task {num} docx to {task_doc}")
+#
+#         try:
+#             subprocess.run([
+#                 "libreoffice",
+#                 "--headless", "--convert-to", "pdf", task_doc,
+#                 "--outdir", tasks_dir
+#             ], check=True)
+#             logger.info(f"Converted task {num} to PDF")
+#         except FileNotFoundError:
+#             return {"error": "LibreOffice не установлена или недоступна в PATH."}
+#
+#         pdf_file = os.path.join(tasks_dir, f"task{num}.pdf")
+#         pages = convert_from_path(pdf_file, dpi=200)
+#         img = pages[0]
+#         img_file = os.path.join(images_dir, f"task{num}.png")
+#         img.save(img_file)
+#         logger.info(f"Saved image for task {num}: {img_file}")
+#         image_paths.append(img_file)
+#         os.remove(pdf_file)
+#
+#     os.remove(input_path)
+#     logger.info("Removed original docx")
+#
+#     all_questions = []
+#     for path in image_paths:
+#         logger.info(f"Processing GPT for image {path}")
+#         resp = await send_image_to_gpt(path)
+#         for q in resp.get("questions", []):
+#             if q.get("error"): continue
+#             ca = q.get("correct_answer", "")
+#             if isinstance(ca, str) and "|" in ca:
+#                 q["correct_answer"] = ca.split("|",1)[0].strip()
+#             for k,v in q.get("options",{}).items():
+#                 if not v.startswith("$"): q["options"][k] = f"${v}$"
+#             expl = q.get("explanation","")
+#             if expl:
+#                 lines = expl.split("\n")
+#                 for i,ln in enumerate(lines):
+#                     if re.search(r"[=+\-^]|\\frac", ln) and not ln.startswith("$"):
+#                         lines[i] = f"${ln}$"
+#                 q["explanation"] = "\n".join(lines)
+#             all_questions.append(q)
+#     logger.info(f"Total questions parsed: {len(all_questions)}")
+#     logger.info(
+#         "Calling fix_math_json with raw questions:\n" + json.dumps({"questions": all_questions}, ensure_ascii=False,
+#                                                                    indent=2))
+#     fixed = fix_math_json({"questions": all_questions})
+#     return fixed
 
 
 
